@@ -123,47 +123,7 @@ print('p(<=0)', [np.mean(alphas < 0.00) for alphas in [alphas_c, alphas_r]])
 print('p(CCA < raw)', np.mean(alphas_c < alphas_r))
 
 
-#%% plot some figure ###
-
-plt.rcParams['pdf.fonttype'] = 42
-font = {'family': 'sans-serif',
-        'weight': 'normal',
-        'size': 12}
-plt.rc('font', **font)
-panel_font = 16
-plt.rcParams['font.sans-serif'] = ['arial']
-plt.rcParams['axes.spines.right'] = False
-plt.rcParams['axes.spines.top'] = False
-cm = 1/2.54
-
-
-fig = plt.figure(figsize = (16*cm, 3.5*cm))
-gs = fig.add_gridspec(1, 2, left=0.20, right=0.8, bottom=0.0, top=1., wspace = 0.25, hspace = 0.20)
-
-# plot similarity vs time
-ax = fig.add_subplot(gs[0, 0])
-ax.plot(u_dts, m_rho, "k-", label = 'single neuron')
-ax.plot(u_dts, m_cca, 'b-', label = 'latent')
-ax.fill_between(u_dts[:-1], (m_rho - s_rho)[:-1], (m_rho + s_rho)[:-1], color = 'k', alpha = 0.2)
-ax.fill_between(u_dts[:-1], (m_cca - s_cca)[:-1], (m_cca + s_cca)[:-1], color = 'b', alpha = 0.2)
-ax.legend(frameon = False)
-ax.set_xlabel('time difference (days)')
-ax.set_ylabel('similarity')
-ax.set_xlim(0, 6)
-ax.set_ylim(0, 1)
-
-
-#plot histograms of bootstrapped stability indices
-bins = np.linspace(-0.05, 0.01, 101)
-ax = fig.add_subplot(gs[0, 1])
-ax.hist(alphas_r, color = "k", alpha = 0.2, bins = bins)
-ax.hist(alphas_c, color = "b", alpha = 0.2, bins = bins)
-ax.axvline(0, color = 'k', ls = "--")
-ax.set_xlabel('stability index')
-ax.set_ylabel('frequency')
-ax.set_yticks([])
-plt.savefig('./plots/hindol_cca.png', bbox_inches = 'tight')
-plt.close()
+#%% save ###
 
 # dump data
 data = {
@@ -301,36 +261,7 @@ print('raw 95% CI:', np.quantile(alphas_r, [0.025, 0.5, 0.975]))
 print('p(<0):', [np.mean(alphas < 0.00) for alphas in [alphas_c, alphas_r]])
 print('p(CCA < raw)', np.mean(alphas_c < alphas_r))
 
-# %% plot figure
-
-fig = plt.figure(figsize = (16*cm, 3.5*cm))
-gs = fig.add_gridspec(1, 2, left=0.20, right=0.8, bottom=0.0, top=1., wspace = 0.25, hspace = 0.20)
-
-# plot similarity vs time
-ax = fig.add_subplot(gs[0, 0])
-ax.plot(u_dts, m_rho, "k-", label = 'single neuron')
-ax.plot(u_dts, m_cca, 'b-', label = 'latent')
-ax.fill_between(u_dts[:-1], (m_rho - s_rho)[:-1], (m_rho + s_rho)[:-1], color = 'k', alpha = 0.2)
-ax.fill_between(u_dts[:-1], (m_cca - s_cca)[:-1], (m_cca + s_cca)[:-1], color = 'b', alpha = 0.2)
-ax.legend(frameon = False)
-ax.set_xlabel('time difference (days)')
-ax.set_ylabel('decoding performance')
-ax.set_xlim(0, 6)
-ax.set_ylim(0, 1)
-ax.set_ylim(0.0, 1.0)
-
-
-#plot histograms
-bins = np.linspace(-0.05, 0.01, 101)
-ax = fig.add_subplot(gs[0, 1])
-ax.hist(alphas_r, color = "k", alpha = 0.2, bins = bins)
-ax.hist(alphas_c, color = "b", alpha = 0.2, bins = bins)
-ax.axvline(0, color = 'k', ls = "--")
-ax.set_xlabel('stabiliy index')
-ax.set_ylabel('frequency')
-ax.set_yticks([])
-plt.savefig('./plots/hindol_cca_decoding.png', bbox_inches = 'tight')
-plt.close()
+# %% save
 
 data = {
     'dts': dts,
@@ -340,5 +271,3 @@ data = {
     'alphas_raw': alphas_r}
 pickle.dump(data, open('./results/decoding_and_cca/population_decoding.p', 'wb'))
 
-
-# %%

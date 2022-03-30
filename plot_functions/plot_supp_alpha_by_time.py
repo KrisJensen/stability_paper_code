@@ -44,7 +44,6 @@ for iwds, wds in enumerate([False, True]): #repeat for WDS
             res, yhat = data[region]['fit_dur'], data[region]['bin_yhat_dur']#model fit
             alphas, dts, rec_times, inds = [data[region][k] for k in ['alphas', 'dts', 'rec_times', 'alpha_inds']]
             
-            print(len(alphas), len(rec_times), len(inds))
             rec_times = np.array(rec_times)[np.array(inds)]
 
             ax = fig.add_subplot(gs[0, 2*iwds + ireg])
@@ -60,7 +59,6 @@ for iwds, wds in enumerate([False, True]): #repeat for WDS
             xs = np.linspace(np.amin(rec_times), np.amax(rec_times), 101)
             ys = -np.abs(res[0]) - np.abs(res[1])*np.exp(-np.abs(res[2])*xs)
             ax.plot(xs, ys, get_col(region)+'-')
-            print(res, np.amin(alphas), np.amax(alphas))
 
             ax.axhline(0, color = 'k', lw = 1)
 

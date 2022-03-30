@@ -44,7 +44,6 @@ for iname, name in enumerate(['DLS', 'MC']):
         long_sims[iind, :] = binned_statistic(dt, sim, statistic = 'mean', bins = bins)[0]
         
     m, s = np.nanmean(long_sims, axis = 0), np.nanstd(long_sims, axis = 0)/np.sqrt(np.sum(1-np.isnan(long_sims), axis = 0))
-    print(name+' number of units with >= 14 recording days:', np.sum(1-np.isnan(long_sims), axis = 0))
     xs = (bins[1:] + bins[:-1])/2
 
     ax = fig.add_subplot(gs[0, iname])

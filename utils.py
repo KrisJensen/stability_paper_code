@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 global_params = {'smooth_peth': True, #convolve peth w/ gaussian
                 'minspike': 10, # minimum number of spikes in a session
                 'min_intercept': -np.inf, #minimum intercept to consider alpha
-                #'min_sameday': 0.1, #minimum same-day similarity
                 'min_sameday': 0.15, #minimum same-day similarity
                 'constrain_intercept': True, #constrain intercept to be in [-1, 1]
                 'min_dt': 3, #minimum time difference to compute alpha (recording time is this +1)

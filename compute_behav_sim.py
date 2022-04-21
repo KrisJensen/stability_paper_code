@@ -11,6 +11,9 @@ from scipy.stats import pearsonr, linregress
 import pickle
 
 def compute_behav_sim(rat, verbose = True):
+
+    #note that we only use data from 0.1s before the first tap to 0.1s after the second tap
+    #'inds' are the timebins corresponding to this behavior
     inds = np.arange(48, 157)
 
     if 'wds' in rat['name']:
@@ -30,13 +33,12 @@ def compute_behav_sim(rat, verbose = True):
             for limb in limbs:
                 for coord in range(ncoords):
                     if 'wds' in rat['name']:
-                        #v1, v2 = [np.mean(rat['trials'][day]['vels_w'][limb][:, :, coord], axis = 0) for day in [day1, day2]] #timepoints
                         v1, v2 = [np.mean(rat['trials'][day]['kinematics_w'][limb][:, :, coord], axis = 0) for day in [day1, day2]] #consider all time points for this
                     else:
                         v1, v2 = [np.mean(rat['trials'][day]['vels_w'][limb][:, inds, coord], axis = 0) for day in [day1, day2]] #timepoints
-                        #v1, v2 = [np.mean(rat['trials'][day]['kinematics_w'][limb][:, inds, coord], axis = 0) for day in [day1, day2]]
                     newsims.append(pearsonr(v1, v2)[0])
             sims.append(np.mean(newsims))
+            #time difference here is just the number of days separating to sessions
             dts.append(day2-day1)
             day1s.append(day1)
         if verbose: print(day1, 'of', str(days[-1])+':', np.mean(sims))

@@ -11,15 +11,32 @@ import numpy as np
 from scipy.stats import linregress
 from scipy.optimize import minimize
 
+col_dls = [0.466, 0.674, 0.188]
+col_mc = [0.301, 0.745, 0.933]
+col_stab = [0.85, 0.325, 0.098]
+col_un = [0.929, 0.694, 0.125]
+
+
+col_dls = [0, 0.447, 0.741]
+col_mc = [0.85, 0.325, 0.098]
+
+col_stab = [0.466, 0.674, 0.188]
+col_un = [0.494, 0.184, 0.556]
+
+col_blue = np.array([56, 84, 160]) / 256
+col_green = np.array([66, 140, 84]) / 256
+
+global_cmap = 'coolwarm'
+
 def get_col(name):
-    cols = {'DLS': 'b',
-            'Hindol': 'b',
-            'Dhanashri': 'b',
-            'Jaunpuri': 'b',
-            'MC': 'r',
-            'Hamir': 'r',
-            'Gandhar': 'r',
-            'Gorakh': 'r'}
+    cols = {'DLS': col_dls,
+            'Hindol': col_dls,
+            'Dhanashri': col_dls,
+            'Jaunpuri': col_dls,
+            'MC': col_mc,
+            'Hamir': col_mc,
+            'Gandhar': col_mc,
+            'Gorakh': col_mc}
     
     keys = list(cols.keys())
     for k in keys:

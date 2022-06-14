@@ -15,7 +15,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font
+from plot_utils import panel_font, col_un, col_stab
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -40,8 +40,8 @@ x2 = [0.9*(0.7/0.9)**i for i in range(5)]  # drift
 
 
 plt.figure(figsize=(5.25*cm, 4.8*cm))
-plt.plot(t, x2, 'm-', alpha=0.8)
-plt.plot(t, x1, 'c-', alpha=0.8)
+plt.plot(t, x2, color = col_un, ls = '-', alpha=0.8)
+plt.plot(t, x1, color = col_stab, ls = '-', alpha=0.8)
 plt.xlabel('time difference')
 plt.ylabel('similarity of\nneural activity', labelpad=-10)
 plt.ylim(0.0, 1)

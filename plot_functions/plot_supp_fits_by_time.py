@@ -5,7 +5,7 @@ Created on Thu Sep  2 12:46:26 2021
 
 @author: kris
 """
-
+import matplotlib
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
@@ -44,6 +44,7 @@ for iname, name in enumerate(['DLS', 'MC']):
         long_sims[iind, :] = binned_statistic(dt, sim, statistic = 'mean', bins = bins)[0]
         
     m, s = np.nanmean(long_sims, axis = 0), np.nanstd(long_sims, axis = 0)/np.sqrt(np.sum(1-np.isnan(long_sims), axis = 0))
+    print(name+' number of units with >= 14 recording days:', np.sum(1-np.isnan(long_sims), axis = 0))
     xs = (bins[1:] + bins[:-1])/2
 
     ax = fig.add_subplot(gs[0, iname])
@@ -53,8 +54,10 @@ for iname, name in enumerate(['DLS', 'MC']):
     max_dts = np.arange(len(xs)-1)+2
     for i in max_dts:
         v = (i - max_dts[0]) / (max_dts[-1] - max_dts[0])
-        col = 0.7 * np.ones(3) * v
-        col = [0, v, 1-v]
+        #col = 0.7 * np.ones(3) * v
+        #col = [0, v, 1-v]
+        cmap = matplotlib.cm.get_cmap('viridis')
+        col = cmap(0.5*v + 0.25)
 
         fit = fit_model(xs[:i], m[:i], baseline = False)
         ys = fit.x[0]*np.exp( fit.x[1]*xs )

@@ -22,8 +22,8 @@ plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
 cm = 1/2.54
 
-fig = plt.figure(figsize = (12*cm, 12*cm))
-gs = fig.add_gridspec(2, 4, left=0, right=1, bottom=0.0, top=1., wspace = 0.1, hspace = 0.52, width_ratios = [1, 0.15, 1, 0.1])
+fig = plt.figure(figsize = (12*cm, 18*cm))
+gs = fig.add_gridspec(5, 4, left=0, right=1, bottom=0.0, top=1., wspace = 0.1, hspace = 0.2, width_ratios = [1, 0.15, 1, 0.1], height_ratios = [1,0.7, 0.3, 1,0.7])
 
 for itype, type_ in enumerate(['twotap', 'wds']):
 
@@ -36,44 +36,56 @@ for itype, type_ in enumerate(['twotap', 'wds']):
 
     vmin, vmax = 0, 1
 
-    for iname, name in enumerate(names):
+    for panel in range(2): # zoom in on >=14 days for second plot
 
-        ax = fig.add_subplot(gs[itype, 2*iname])
+        for iname, name in enumerate(names):
 
-        unums, dts, sims, rec_times = [data[name][k] for k in ['unums', 'dts', 'sims', 'rec_times']]
-        max_dt = 22
-        u_dt = np.arange(1, max_dt)
-        vals = []
-        for ind in np.argsort(-np.array(rec_times)): #from longest to shortest
-            dt, sim = np.array(dts[ind]), np.array(sims[ind])
-            u_sim = np.array([np.mean(sim[dt == t]) for t in u_dt])
+            ax = fig.add_subplot(gs[3*itype+panel, 2*iname])
 
-            if len(dt) > 0 and rec_times[ind] >= 2.5:
-                nans, x = np.isnan(u_sim[:np.amax(dt)]), lambda z: z.nonzero()[0]
-                u_sim[:np.amax(dt)][nans]= np.interp(x(nans), x(~nans), u_sim[:np.amax(dt)][~nans]) #interpolate nans
+            unums, dts, sims, rec_times = [data[name][k] for k in ['unums', 'dts', 'sims', 'rec_times']]
+            max_dt = 22
+            u_dt = np.arange(1, max_dt)
+            vals = []
 
-                vals.append(u_sim)
+            if panel == 1: #only >= 14 days
+                inds = np.where(rec_times >= 14)[0]
+                unums, dts, sims, rec_times = [[arr[ind] for ind in inds] for arr in [unums, dts, sims, rec_times]]
 
-        sims = np.array(vals)
+            for ind in np.argsort(-np.array(rec_times)): #from longest to shortest
+                dt, sim = np.array(dts[ind]), np.array(sims[ind])
+                u_sim = np.array([np.mean(sim[dt == t]) for t in u_dt])
 
-        #sims = sims[ np.sum(1 - np.isnan(sims), axis = 1) >= 3.5, :]
+                if len(dt) > 0 and rec_times[ind] >= 2.5:
+                    nans, x = np.isnan(u_sim[:np.amax(dt)]), lambda z: z.nonzero()[0]
+                    u_sim[:np.amax(dt)][nans]= np.interp(x(nans), x(~nans), u_sim[:np.amax(dt)][~nans]) #interpolate nans
 
-        im = ax.imshow(sims, cmap = 'viridis', vmin = vmin, vmax = vmax, aspect = 'auto', interpolation = 'nearest')
-        ax.set_xlabel('time difference (days)')
-        ax.set_title(name.replace('_', ' '))
+                    vals.append(u_sim)
 
-        if iname == 0:
-            ax.set_ylabel('neuron')
+            sims = np.array(vals)
 
-    newax = fig.add_subplot(gs[itype, 3])
-    newax.set_xticks([])
-    newax.set_yticks([])
-    cbar = plt.colorbar(im, orientation = 'vertical', ax = newax, fraction = 1.0, shrink = 1, ticks=[vmin, vmax])
-    cbar.ax.set_yticklabels([str(vmin), str(vmax)], rotation = 0, va = 'center', ha = 'left')
-    cbar.ax.set_ylabel('mean correlation', rotation=270, labelpad = -3)
+            #sims = sims[ np.sum(1 - np.isnan(sims), axis = 1) >= 3.5, :]
+
+            im = ax.imshow(sims, cmap = 'viridis', vmin = vmin, vmax = vmax, aspect = 'auto', interpolation = 'nearest')
+
+            if panel == 0:
+                ax.set_title(name.replace('_', ' '))
+                ax.set_xticks([])
+            else:
+                ax.set_xlabel('time difference (days)')
+
+            if iname == 0:
+                ax.set_ylabel('neuron')
+
+        if itype == 0 and panel == 0:
+            newax = fig.add_subplot(gs[itype, 3])
+            newax.set_xticks([])
+            newax.set_yticks([])
+            cbar = plt.colorbar(im, orientation = 'vertical', ax = newax, fraction = 1.0, shrink = 1, ticks=[vmin, vmax])
+            cbar.ax.set_yticklabels([str(vmin), str(vmax)], rotation = 0, va = 'center', ha = 'left')
+            cbar.ax.set_ylabel('mean correlation', rotation=270, labelpad = -3)
 
 plt.text(-0.12, 1.05, 'A',ha='left', va='top',transform=fig.transFigure, fontweight='bold',fontsize=panel_font)
-plt.text(-0.12, 0.45, 'B',ha='left', va='top',transform=fig.transFigure, fontweight='bold',fontsize=panel_font)
+plt.text(-0.12, 0.47, 'B',ha='left', va='top',transform=fig.transFigure, fontweight='bold',fontsize=panel_font)
 
 plt.savefig('../paper_figs/Sfig_all_neurons.png', bbox_inches = 'tight', dpi = png_dpi)
 plt.savefig('../paper_figs/Sfig_all_neurons.pdf', bbox_inches = 'tight')

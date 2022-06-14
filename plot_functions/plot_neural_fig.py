@@ -5,7 +5,7 @@ Created on Fri Sep  3 07:45:50 2021
 
 @author: kris
 """
-
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 import pickle
@@ -17,7 +17,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font, png_dpi
+from plot_utils import panel_font, png_dpi, global_cmap
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -52,7 +52,7 @@ for i, name in enumerate(['Hindol', 'Hamir']):
     
     vmin, vmax = -2, 4
     ax = fig.add_subplot(gs[0, 2*i])
-    im = ax.imshow(grid, cmap='coolwarm', vmin=vmin, vmax = vmax, aspect='auto', interpolation = 'none')
+    im = ax.imshow(grid, cmap=global_cmap, vmin=vmin, vmax = vmax, aspect='auto', interpolation = 'none')
     ax.set_yticks([-0.5, grid.shape[0]-0.5])
     ax.set_yticklabels([grid.shape[0], 1])
     ax.set_xticks(np.linspace(-0.5, np.shape(grid)[1]-0.5, len(xs)))
@@ -94,7 +94,7 @@ else:
     ss = np.array([0.3, 0.3, 0.3, 0.3])/1
     alphas = np.array([0.5, 0.5, 0.5, 0.5])
     
-ss = np.ones(4)*0.1
+ss = np.ones(4)*0.15
 alphas = [1,1,1,1]
 
 for iname, name in enumerate(names):
@@ -104,21 +104,22 @@ for iname, name in enumerate(names):
         
         u = rat['units'][unum]
         rasts = [u[day]['raster_w'] for day in np.sort(list(u.keys()))]
-        cols = [[0, 0.1+i/len(rasts)*0.8, 0.9-i/len(rasts)*0.8] for i in range(len(rasts))]
-        
+
+        cols = [np.array(get_col(name)) * (0.7*(1 - i/len(rasts))+0.4) for i in range(len(rasts))]
+
         n = 0
         ns_day = []
         ax = fig.add_subplot(gs[0, iplot])
         for irast, rasters in enumerate(rasts):
             if len(rasters) > 1:
                 for rast in rasters[::subsamps[iplot]]:
-                    if len(rast) > 1:
+                    if len(rast) > 2:
                         rast = np.array(rast)[::subsamps[iplot]]
                         ax.scatter(rast, [n for i in range(len(rast))], s=ss[iname], color=cols[irast], alpha = alphas[iname],  marker='o', linewidths=0.)
                         n -= 1
     
                 if irast < (len(rasts) - 1):
-                    ax.axhline(n, color = 'k', ls = '-', linewidth=0.3)
+                    ax.axhline(n, color = 'k', ls = '-', linewidth=0.5)
                     ns_day.append(n)
                     n -= 1
     
@@ -141,7 +142,6 @@ for iname, name in enumerate(names):
         xs = np.arange(len(hs[0]))
         
         inds = [0,round(len(hs)/2-0.5), len(hs)-1]
-        #print(inds)
         for ind in inds:
             h = hs[ind]
             ax.plot(xs, h, c=cols[ind])
@@ -197,7 +197,7 @@ for iname, name in enumerate(['DLS', 'MC']):
     m, s = np.nanmean(long_sims, axis = 0), np.nanstd(long_sims, axis = 0)/np.sqrt(np.sum(1-np.isnan(long_sims), axis = 0))
     print(name+' number of units with >= 14 recording days:', long_sims.shape[0])
     xs = (bins[1:] + bins[:-1])/2
-    ax.plot(xs, m, get_col(name)+'-', label = labels[iname])
+    ax.plot(xs, m, color = get_col(name), ls = '-', label = labels[iname])
     ax.fill_between(xs, m-s, m+s, color = get_col(name), alpha = 0.2)
 
     ## plot exponential fit
@@ -215,13 +215,13 @@ for iname, name in enumerate(['DLS', 'MC']):
             dt, sim = np.array(res[unum]['dts'][i]), np.array(res[unum]['sims'][i])
             long_sims[iind, i, :] = binned_statistic(dt, sim, statistic = 'mean', bins = bins)[0]
     m, s = np.nanmean(long_sims, axis = (0, 1)), np.nanstd(long_sims, axis = (0, 1))/np.sqrt(np.sum(1-np.isnan(long_sims), axis = (0, 1)))
-    ax.plot(xs, m, get_col(name)+'--', alpha = 0.5)
+    ax.plot(xs, m, color = get_col(name), ls = '--', alpha = 0.5)
     ax.fill_between(xs, m-s, m+s, color = get_col(name), alpha = 0.1)
 
     # get lower bound
     m = np.mean(data[name]['long_shuffled_sims'])
     s = np.std(data[name]['long_shuffled_sims'])/np.sqrt(len(data[name]['long_shuffled_sims']))
-    ax.plot([xs[0], xs[-1]], np.ones(2)*m, get_col(name)+'--', alpha = 0.5)
+    ax.plot([xs[0], xs[-1]], np.ones(2)*m, color = get_col(name), ls = '--', alpha = 0.5)
     ax.fill_between([xs[0], xs[-1]], np.ones(2)*(m-s), np.ones(2)*(m+s), color = get_col(name), alpha = 0.1)
 
 ax.set_xlim(xs[0], xs[-1])
@@ -339,7 +339,7 @@ for ireg, region in enumerate(['DLS', 'MC']):
     boot_vals = data[region]['fit_boot_vals_dur']
     
     q1, q2, q3 = np.nanquantile(boot_vals, [0.25, 0.50, 0.75], axis = 0)
-    ax.plot(x, q2, get_col(region)+'--')
+    ax.plot(x, q2, color = get_col(region), ls = '--')
     ax.fill_between(x, q1, q3, color = get_col(region), alpha = 0.2)
     
     ax.scatter(x, y, marker='x', color = 'k', s = 30)
@@ -349,7 +349,7 @@ for ireg, region in enumerate(['DLS', 'MC']):
     print(region+' boostrapped n = '+str(boot.shape[0]))
     
     ax.axhline(0, ls = '--', color = 'k')
-    ax.set_xlabel('recording time')
+    ax.set_xlabel('rec. duration (d.)')
     if ireg == 0:
         ax.set_ylabel(r'$\alpha$', labelpad = -20)
         ax.set_yticks([-0.05, 0.0])

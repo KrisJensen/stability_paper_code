@@ -59,7 +59,7 @@ for iwds, wds in enumerate([False, True]):
             m, s = np.nanmean(long_sims, axis = 0), np.nanstd(long_sims, axis = 0)/np.sqrt(np.sum(1-np.isnan(long_sims), axis = 0))
             print('\n'+name+' number of units with >= '+str(max_t)+' recording days:', long_sims.shape[0])
             xs = (bins[1:] + bins[:-1])/2
-            ax.plot(xs, m, get_col(name)+'-', label = labels[iname])
+            ax.plot(xs, m, color = get_col(name), ls = '-', label = labels[iname])
             ax.fill_between(xs, m-s, m+s, color = get_col(name), alpha = 0.2)
 
             #get upper bound
@@ -71,13 +71,13 @@ for iwds, wds in enumerate([False, True]):
                     dt, sim = np.array(res[unum]['dts'][i]), np.array(res[unum]['sims'][i])
                     long_sims[iind, i, :] = binned_statistic(dt, sim, statistic = 'mean', bins = bins)[0]
             m, s = np.nanmean(long_sims, axis = (0, 1)), np.nanstd(long_sims, axis = (0, 1))/np.sqrt(np.sum(1-np.isnan(long_sims), axis = (0, 1)))
-            ax.plot(xs, m, get_col(name)+'--', alpha = 0.5)
+            ax.plot(xs, m, color = get_col(name), ls = '--', alpha = 0.5)
             ax.fill_between(xs, m-s, m+s, color = get_col(name), alpha = 0.1)
 
             # get lower bound
             m = np.mean(data[name]['long_shuffled_sims'])
             s = np.std(data[name]['long_shuffled_sims'])/np.sqrt(len(data[name]['long_shuffled_sims']))
-            ax.plot([xs[0], xs[-1]], np.ones(2)*m, get_col(name)+'--', alpha = 0.5)
+            ax.plot([xs[0], xs[-1]], np.ones(2)*m, color = get_col(name), ls = '--', alpha = 0.5)
             ax.fill_between([xs[0], xs[-1]], np.ones(2)*(m-s), np.ones(2)*(m+s), color = get_col(name), alpha = 0.1)
             ax.set_title('>= '+str(int(max_t))+' days', fontsize = font['size'])
 

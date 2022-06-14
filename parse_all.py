@@ -9,4 +9,5 @@ for wds in [False, True]:
         if wds:
             name += '_wds'
         print('\nparsing', name)
-        sb.call(['python', 'parse_rat.py', name])
+        sb.call(['python', 'parse_rat.py', name]) #parse with warping
+        sb.call(['python', 'parse_rat.py', name, 'trim']) #also parse with trimming!

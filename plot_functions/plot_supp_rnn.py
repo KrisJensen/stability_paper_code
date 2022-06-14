@@ -17,7 +17,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font, png_dpi
+from plot_utils import panel_font, png_dpi, col_stab, col_un
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -52,13 +52,12 @@ for itype, lab in enumerate(labs): #for each parameter type
                     sim.append(pearsonr(p1.flatten(), p2.flatten())[0])
                     dt.append(i2-i1)
             bin_sims[rep, :] = binned_statistic(dt, sim, bins = bins)[0]
-        #print(bin_sims)
         m, s = np.nanmean(bin_sims, axis = 0), np.nanstd(bin_sims, axis = 0)
         s = s #/ np.sqrt(np.sum(1-np.isnan(bin_sims), axis = 0))
         
         label = ['stable', 'drifting'][idata] if itype == 0 else None
-        c = ['c', 'm'][idata]
-        ax.plot(bin_dts, m, c+['-', '--'][idata], label = label)
+        c = [col_stab, col_un][idata]
+        ax.plot(bin_dts, m, color = c, ls = ['-', '--'][idata], label = label)
         ax.fill_between(bin_dts, m-s, m+s, color = c, alpha = 0.2)
         
     ax.set_xlabel('time difference')

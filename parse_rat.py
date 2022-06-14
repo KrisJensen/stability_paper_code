@@ -23,7 +23,7 @@ def nan_helper(y):
     """
     return np.isnan(y), lambda z: z.nonzero()[0]
 
-def warp_twotap_behav(rat, day, limb, keep):
+def warp_twotap_behav(rat, day, limb, keep, trim = False):
     
     ###fit splines###
     ncoord = rat['trials'][day]['kinematics'][limb].shape[-1]
@@ -39,6 +39,9 @@ def warp_twotap_behav(rat, day, limb, keep):
     
     for itrial in np.where(keep)[0]:
         Int = ipis[itrial]
+        if trim:
+            Int = tint #no warping
+
         t1 = (np.arange(61) - 60) / 120 #timepoints in seconds before first tap
         t2 = (np.arange(61, 145) - 60) / 120 * Int / tint #between taps
         t3 = (np.arange(145, 241) - 60) / 120 + Int - tint #after second tap
@@ -50,7 +53,7 @@ def warp_twotap_behav(rat, day, limb, keep):
             rat['trials'][day]['acc_w'][limb][itrial, :, icoord] = splines[itrial][icoord](newtimes, 2) #first derivative
     return
     
-def warp_wds_behav(rat, day, limb, keep, tmin = -0.2, tmax = 0.5):
+def warp_wds_behav(rat, day, limb, keep, tmin = -0.2, tmax = 0.5, trim = False):
     
     acc = rat['trials'][day]['kinematics'][limb]
     times = rat['trials'][day]['times']
@@ -73,6 +76,9 @@ def warp_wds_behav(rat, day, limb, keep, tmin = -0.2, tmax = 0.5):
         period = periods[itrial]
         t0, t2 = np.sort(extimes-event)[[0, -1]]+np.array([-1, 1])*period/4 #first and last peak/valley
         factor = period/tint
+
+        if trim:
+            factor = 1 #no warping
         
         tt1 = times[times < t0] + t0*(factor-1)
         tt2 = times[(times >= t0) & (times <= t2)] * factor
@@ -84,7 +90,7 @@ def warp_wds_behav(rat, day, limb, keep, tmin = -0.2, tmax = 0.5):
                 rat['trials'][day][k][limb][itrial, :, icoord] = splines[itrial][icoord](newtimes)
     return
 
-def parse_behav(rat, maxnan = 0.5):
+def parse_behav(rat, maxnan = 0.5, trim = False):
     '''interpolate kinematics, fit spline, and extract time warped position+velocity'''
     all_keep = {}
     for day in rat['trials'].keys():
@@ -112,16 +118,16 @@ def parse_behav(rat, maxnan = 0.5):
                     rat['trials'][day]['kinematics'][limb][itrial,nans,icoord] = np.interp(x(nans), x(~nans), rat['trials'][day]['kinematics'][limb][itrial,~nans,icoord])
                 
             if 'wds' in rat['name']:
-                warp_wds_behav(rat, day, limb, keep) #in-place
+                warp_wds_behav(rat, day, limb, keep, trim = trim) #in-place
             else:
-                warp_twotap_behav(rat, day, limb, keep) #in-place
+                warp_twotap_behav(rat, day, limb, keep, trim = trim) #in-place
     
         print(day, np.mean(keep), len(keep))
         
     return rat, all_keep
 
 
-def warp_twotap_activity(rat, all_keep, tmin, tmax, tint = 'default'):
+def warp_twotap_activity(rat, all_keep, tmin, tmax, tint = 'default', trim = False):
     '''warp neural activity for all units'''
     
     tint = 0.7
@@ -136,6 +142,9 @@ def warp_twotap_activity(rat, all_keep, tmin, tmax, tint = 'default'):
             
             for itrial in range(len(keep)):
                 Int = ipis[itrial]
+
+                if trim:
+                    Int = tint #no warping
                 
                 spikes = rat['units'][unum][day]['raster'][itrial]
             
@@ -156,7 +165,7 @@ def warp_twotap_activity(rat, all_keep, tmin, tmax, tint = 'default'):
             #print(len(keep), len(raster_w))
     return rat
 
-def warp_wds_activity(rat, all_keep, tmin, tmax, tint = 'default'):
+def warp_wds_activity(rat, all_keep, tmin, tmax, tint = 'default', trim = False):
     
     tint = rat['targetint']
     for unum in rat['units'].keys():
@@ -174,6 +183,9 @@ def warp_wds_activity(rat, all_keep, tmin, tmax, tint = 'default'):
                 period = periods[itrial]
                 t0, t2 = np.sort(extimes-event)[[0, -1]]+np.array([-1, 1])*period/4 #first and last peak/valley
                 factor = period/tint
+
+                if trim:
+                    factor = 1 #no warping!
                 
                 spikes = rat['units'][unum][day]['raster'][itrial]
             
@@ -245,7 +257,7 @@ def calc_peth(raster, tmin, tmax, wds = False, gauss = True):
             
     return peth
 
-def parse(rat, subselect = True, maxnan = 0.5, tmax = 'default', tmin = 'default'):
+def parse(rat, subselect = True, maxnan = 0.5, tmax = 'default', tmin = 'default', trim = False):
     '''
     compute raster and perform time warping
     '''
@@ -259,16 +271,16 @@ def parse(rat, subselect = True, maxnan = 0.5, tmax = 'default', tmin = 'default
         rat = subselect_trials(rat)
         
     ### warp behavior and compute velocity ###
-    rat, all_keep = parse_behav(rat, maxnan = maxnan)
+    rat, all_keep = parse_behav(rat, maxnan = maxnan, trim = trim)
     
     
     ### warp neural activity ###
     if 'wds' in rat['name']:
         wds = True
-        rat = warp_wds_activity(rat, all_keep, tmin, tmax)
+        rat = warp_wds_activity(rat, all_keep, tmin, tmax, trim = trim)
     else:
         wds = False
-        rat = warp_twotap_activity(rat, all_keep, tmin, tmax)
+        rat = warp_twotap_activity(rat, all_keep, tmin, tmax, trim = trim)
     
     ### only keep 'tokeep' ###
     rat = select_trials(rat, all_keep)
@@ -372,17 +384,26 @@ if __name__ == '__main__':
         ratname = sys.argv[1]
     else:
         ratname = 'Hindol'
-    
+
+    trim = False
+    if len(sys.argv) > 2:
+        if sys.argv[2] == 'trim':
+            trim = True
+            print("trimming")
     
     #rat = pickle.load(open('./data/'+ratname+'_data.p', 'rb'))
     rat = pickle.load(open('/homes/ktj21/Documents/olveczky/analysis_code/data/'+ratname+'_data.p', 'rb'))
     print(time.time()-t0)
-    rat = parse(rat)#, subselect = False)
+    rat = parse(rat, trim = trim)#, subselect = False)
     print(time.time()-t0)
 
     #%%
     rat = keep_warped(rat)
-    pickle.dump(rat, open('./data/'+ratname+'_data_warped.p', 'wb'))
+
+    if trim:
+        pickle.dump(rat, open('./data/'+ratname+'_data_trimmed.p', 'wb'))
+    else:
+        pickle.dump(rat, open('./data/'+ratname+'_data_warped.p', 'wb'))
     
     
     

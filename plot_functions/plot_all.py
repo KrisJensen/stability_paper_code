@@ -9,7 +9,8 @@ os.makedirs('../paper_figs', exist_ok=True)
 os.makedirs('../paper_figs/fig_intro', exist_ok=True)
 
 
-### plot all figures (~5 mins) ###
+##### main text figures #####
+
 print('\n\nplotting schematics for introduction')
 sb.call(['python', 'plot_intro_schematics.py'])
 
@@ -28,37 +29,36 @@ sb.call(['python', 'plot_behav_fig.py'])
 print('\n\nplotting WDS figure')
 sb.call(['python', 'plot_wds_fig.py'])
 
+
+##### supplementary figures #####
+
 print('\n\nplotting supplementary RNN figure')
 sb.call(['python', 'plot_supp_rnn.py'])
 
-print('\n\nplotting supplementary model fit figure')
+print('\n\nplotting supplementary behavior figure')
+sb.call(['python', 'plot_supp_all_behav.py'])
+
+print('\n\nplotting supplementary neural similarity figure')
+sb.call(['python', 'plot_supp_all_neurons.py'])
+
+print('\n\nplotting supplementary similarity by time figure')
+sb.call(['python', 'plot_4C_supp.py'])
+
+print('\n\nplotting supplementary decoding figure')
+sb.call(['python', 'plot_supp_latent.py'])
+
+print('\n\nplotting supplementary model fit and stability index figure')
 sb.call(['python', 'plot_example_fits.py'])
 
-#print('\n\nplotting supplementary PN/IN figure')
-#sb.call(['python', 'plot_PN_IN_fig.py'])
+print('\n\nplotting supplementary trimming figure')
+sb.call(['python', 'plot_supp_trimmed.py'])
 
-print('\n\nplotting supplementary behavior figure')
+print('\n\nplotting supplementary fits by subsampled time figure')
+sb.call(['python', 'plot_supp_fits_by_time.py'])
+
+print('\n\nplotting supplementary behavioral similarity figure')
 sb.call(['python', 'plot_supp_behav.py'])
-
-print('\n\nplotting supplementary IPI figure')
-sb.call(['python', 'plot_ipi_fig.py'])
 
 print('\n\nplotting supplementary modulation figure')
 sb.call(['python', 'plot_modulation_fig.py'])
-
-#print('\n\nplotting supplementary rate figure')
-#sb.call(['python', 'plot_rate_fig.py'])
-
-print('\n\nplotting revision figures')
-sb.call(['python', 'plot_supp_all_behav.py'])
-sb.call(['python', 'plot_supp_all_neurons.py'])
-sb.call(['python', 'plot_supp_alpha_by_time.py'])
-sb.call(['python', 'plot_supp_fits_by_time.py'])
-sb.call(['python', 'plot_supp_latent.py'])
-sb.call(['python', 'plot_4C_supp.py'])
-
-
-
-
-
 

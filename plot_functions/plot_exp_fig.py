@@ -15,7 +15,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font, png_dpi
+from plot_utils import panel_font, png_dpi, global_cmap
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -41,7 +41,6 @@ for ilab, label in enumerate(labels):
     warps = [rat['trials'][day]['ipis']/0.7 for day in days]
     newdays = [days[j] for j in range(0, len(days)) if len(trajecs[j]) > 0]
     trajec = [np.array(traj)[:, inds] for traj in trajecs if len(traj) > 0]
-    #print(trajec[0].shape)
     plottrajec = np.concatenate(trajec)
     warps = np.concatenate(warps)
     
@@ -50,7 +49,7 @@ for ilab, label in enumerate(labels):
     plottrajec *= 100/(vmax-vmin)
 
     ax = fig.add_subplot(gs[0, 2*ilab])
-    im = ax.imshow(plottrajec, cmap='coolwarm', aspect='auto', vmin=0, vmax=100, interpolation = 'none')
+    im = ax.imshow(plottrajec, cmap=global_cmap, aspect='auto', vmin=0, vmax=100, interpolation = 'none')
     ax.set_xticks(np.linspace(plottrajec.shape[1]/9, plottrajec.shape[1], 5)-0.5)
     ax.set_xticklabels(np.round(np.linspace(0.0, 0.8, 5), 1).astype(str))
     ax.set_yticks([0, len(plottrajec)])
@@ -94,7 +93,7 @@ for i, name in enumerate(unit_rats):
     days = [np.sort(list(rat['units'][unum].keys())) for unum in unums]
     day0s = np.array([day[0] for day in days])
     dayns = np.array([day[-1] for day in days])
-    #print(len(unums), np.amin(day0s), np.amax(dayns))
+
     day0s, dayns = day0s - np.amin(day0s), dayns - np.amin(day0s)
     durations = dayns - day0s
     arg1 = np.argsort(durations)
@@ -132,7 +131,6 @@ inds = np.arange(48, 157)
 durations = []
 all_warps = []
 for iname, name in enumerate(names):
-    #print('plotting', name)
     rat = pickle.load(open('../data/'+name+'_data_warped.p', 'rb'))
     warps = [rat['trials'][day]['ipis']/0.7 for day in rat['trials'].keys()]
     all_warps.append(np.concatenate(warps))
@@ -149,9 +147,9 @@ for iname, name in enumerate(names):
         ax.plot(trajecs[:, 0], trajecs[:, 1], 'k-', alpha = 1/1)#(i_w+1))
         
         taps = np.array([12, 96])
-        #print(trajecs[taps, :])
-        cs = [[0, 1/4, 3/4], [0, 2/4, 2/4], [0, 3/4, 1/4]]
-        ax.plot(trajecs[0, 0], trajecs[0, 1], 'o', color = cs[0], markersize = 5)
+
+        cs = [[0,0,0], [0.4,0.4,0.4], [0.7,0.7,0.7]]
+        ax.plot(trajecs[0, 0], trajecs[0, 1], 'o', color = cs[0], markersize = 6)
         for itap, tap in enumerate(taps):
             ax.plot(trajecs[taps[itap], 0], trajecs[taps[itap], 1], 'x', color = cs[itap+1],
                     markersize = 7, mew = 1.5)
@@ -183,25 +181,24 @@ all_warps = np.concatenate(all_warps)
 print('warping coefficients:', np.mean(all_warps), np.std(all_warps))
 
 ### plot histogram of durations ###
-gs = fig.add_gridspec(1, 2, left=0.75, right=1.0, bottom=0.1, top=0.4, wspace = 0.2, hspace = 0.00)
+gs = fig.add_gridspec(1, 2, left=0.75, right=1.01, bottom=0.1, top=0.4, wspace = 0.2, hspace = 0.00)
 
     
 labs = ['MC', 'DLS']
 titles= ['motor cortex', 'DLS']
 inds = [range(3), range(3,6)]
-bins = np.arange(0, 45, 5)
-bins = np.linspace(0, 45, 6)
-xvals = (bins[1:] + bins[:-1])/2
 
-print('recording duration bins:', bins)
 for i in range(2):
     ls = np.concatenate([durations[ind] for ind in inds[i]])
+
+    bins = [0, 3, 9, 27, int(np.amax(ls))]
+    xvals = np.arange(len(bins)-1)
     
-    counts, bins = np.histogram(ls, bins = bins)
+    counts, _ = np.histogram(ls, bins = np.array(bins)+1e-2)
     print(labs[i]+' recording durations:', counts)
 
     ax = fig.add_subplot(gs[0, i])
-    ax.bar(xvals, counts, color = 'k', width = (bins[1]-bins[0])*0.8)
+    ax.bar(xvals, counts, color = 'k', width = 0.8) # (bins[1]-bins[0])*0.8)
     
     ax.set_yscale('log')
     ax.set_ylim(0.5, 1000)
@@ -216,9 +213,17 @@ for i in range(2):
     ax.get_yaxis().set_tick_params(which='minor', size=0)
     ax.get_yaxis().set_tick_params(which='minor', width=0)
     
-    ax.set_xticks([0, 20, 40])
+    #ax.set_xticks([0, 20, 40])
+    ax.set_xticks(np.arange(len(bins))-0.5)
+    ax.set_xticklabels([str(b) for b in bins], fontsize = 10)
     ax.set_xlabel('duration (d.)', fontsize = 10)
-    ax.set_title(titles[i], fontsize = plt.rcParams['font.size'])
+    ax.set_title(titles[i], fontsize = plt.rcParams['font.size'], pad = 9)
+
+    rects = ax.patches
+    for i, rect in enumerate(rects):
+        ax.text(
+            rect.get_x() + rect.get_width() / 2, counts[i]*1.1, str(counts[i]), ha="center", va="bottom", fontsize=8
+        )
     
 
 ### print number of task-modulated neurons ###

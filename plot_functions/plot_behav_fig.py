@@ -15,7 +15,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font, png_dpi
+from plot_utils import panel_font, png_dpi, get_col, col_stab, col_un, global_cmap
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -47,7 +47,8 @@ for ilab, label in enumerate(labels):
     ax = fig.add_subplot(gs[0, 2*ilab])
     vmin, vmax = -1, 1
     vmin, vmax = -0.75, 0.75
-    im = ax.imshow(plottrajec, cmap='coolwarm', aspect='auto', vmin=vmin, vmax = vmax, interpolation = 'antialiased')
+
+    im = ax.imshow(plottrajec, cmap=global_cmap, aspect='auto', vmin=vmin, vmax = vmax, interpolation = 'antialiased')
     ax.set_xticks(np.linspace(plottrajec.shape[1]/9, plottrajec.shape[1], 5)-0.5)
     ax.set_xticklabels(np.round(np.linspace(0.0, 0.8, 5), 1).astype(str))
     ax.set_yticks([0, len(plottrajec)])
@@ -128,13 +129,13 @@ ax.set_ylabel('neural similarity', labelpad = 0)
 boot = [np.mean(np.random.choice(all_corrs, len(all_corrs), replace = True)) for _ in range(1000)]
 ax = fig.add_subplot(gs[0, 2])
 #ax.text(-0.20, 1.20, 'C', transform=ax.transAxes,fontsize=panel_font, fontweight='bold', horizontalalignment='left', verticalalignment='top')
-h, _, _ = ax.hist(all_corrs, bins = np.linspace(-1, 1, 11), color = 'b', alpha = 0.4)
+h, _, _ = ax.hist(all_corrs, bins = np.linspace(-1, 1, 11), color = get_col('DLS'), alpha = 0.4)
 maxval = np.nanmax(h)*1.05
 #ax.fill_between(np.quantile(boot, [0.025, 0.975]), 0, maxval, color = np.ones(3)*0.5, alpha = 0.5)
-ax.axvline(np.mean(all_corrs), color = 'b', label = 'DLS')
+ax.axvline(np.mean(all_corrs), color = get_col('DLS'), label = 'DLS')
 
-h_mc, _, _ = ax.hist(all_corrs_mc, bins = np.linspace(-1, 1, 11), color = 'r', alpha = 0.4)
-ax.axvline(np.mean(all_corrs_mc), color = 'r', label = 'MC')
+h_mc, _, _ = ax.hist(all_corrs_mc, bins = np.linspace(-1, 1, 11), color = get_col('MC'), alpha = 0.4)
+ax.axvline(np.mean(all_corrs_mc), color = get_col('MC'), label = 'MC')
 
 ax.set_ylim(0, maxval)
 ax.set_xlabel('correlation')
@@ -151,22 +152,27 @@ for ireg, region in enumerate(['DLS', 'MC']):
     minval, maxval = [func(np.concatenate([means, means_syn])) for func in [np.amin, np.amax]]
     bins = np.linspace(minval, maxval, 50)
     
+    col_un = [0,0,0]
+    col_stab = [0.5, 0.5, 0.5]
+
     ax = fig.add_subplot(gs[0, ireg+4])
-    ax.hist(means_syn, bins = bins, color = 'b', alpha = 0.5)
-    ax.hist(means, bins = bins, color = 'g', alpha = 0.5)
+    ax.hist(means_syn, bins = bins, color = col_stab, alpha = 0.7)
+    ax.hist(means, bins = bins, color = col_un, alpha = 0.7)
         
-    ax.axvline(np.mean(all_corrs), color = 'k', lw = 2)
-    ax.axvline(np.mean(means), color = 'g', lw = 2, ls ='--')
-    ax.axvline(np.mean(means_syn), color = 'b', lw = 2, ls = '--')
+    ax.axvline(np.mean(all_corrs), color = get_col(region), lw = 2)
+    ax.axvline(np.mean(means), color = col_un, lw = 2, ls ='--')
+    ax.axvline(np.mean(means_syn), color = col_stab, lw = 2, ls = '--')
     
-    ax.set_ylabel('frequency ('+region+')')
+    #ax.set_ylabel('frequency ('+region+')')
     ax.set_xlabel('mean correlation')
     
     if ireg == 0:
+        ax.plot([], [], ls = '-', color = get_col('MC'))
         #ax.text(-0.13, 1.20, 'D', transform=ax.transAxes,fontsize=panel_font, fontweight='bold', horizontalalignment='left', verticalalignment='top')
-        leg = ['data', 'control', 'synthethic']
+        leg = ['DLS', 'ctrl', 'syn', 'MC']
         ax.legend(leg, frameon = False, ncol = len(leg), bbox_to_anchor = (-0.05, 1.30), loc = 'upper left',
-                   handlelength = 1.2, handletextpad = 0.5, columnspacing = 1.2)
+                   handlelength = 1.2, handletextpad = 0.4, columnspacing = 1.0)
+        ax.set_ylabel('frequency')
     
     ax.set_yticks([])
 

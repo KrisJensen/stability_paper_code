@@ -6,18 +6,19 @@ Created on Fri Sep  3 13:50:21 2021
 @author: kris
 """
 
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 import pickle
 import numpy as np
 from scipy.stats import pearsonr, binned_statistic, linregress, ttest_ind
-from plot_utils import get_col, fit_model
+from plot_utils import get_col, fit_model, col_stab, col_un
 plt.rcParams['pdf.fonttype'] = 42
 font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font, png_dpi
+from plot_utils import panel_font, png_dpi, global_cmap
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -50,14 +51,11 @@ vmin, vmax = np.nanquantile(plottrajec, 0.01), np.nanquantile(plottrajec, 0.99)
 plottrajec -= vmin
 plottrajec *= 100/(vmax-vmin)
 
-print(plottrajec.shape)
 T = plottrajec.shape[1]
 ts = np.linspace(-0.2, 0.5, T)
 
 ax = fig.add_subplot(gs[0, 0])
-im = ax.imshow(plottrajec, cmap='coolwarm', aspect='auto', vmin=0, vmax=100)
-#ax.set_xticks(np.linspace(plottrajec.shape[1]/9, plottrajec.shape[1], 5)-0.5)
-#ax.set_xticklabels(np.round(np.linspace(0.0, 0.8, 5), 1).astype(str))
+im = ax.imshow(plottrajec, cmap=global_cmap, aspect='auto', vmin=0, vmax=100)
 ax.set_yticks([0, len(plottrajec)])
 ax.set_yticklabels([1, newdays[-1]-newdays[0]+1])
 ax.set_xlabel('time (s)', labelpad = -0, fontsize = 10)
@@ -120,7 +118,7 @@ for iname, name in enumerate(['DLS_wds', 'MC_wds']):
     print(name+' number of units with >= 14 recording days:', long_sims.shape[0])
     
     xs = (bins[1:] + bins[:-1])/2
-    ax.plot(xs, m, get_col(name)+'-', label = labels[iname])
+    ax.plot(xs, m, color = get_col(name), ls = '-', label = labels[iname])
     ax.fill_between(xs, m-s, m+s, color = get_col(name), alpha = 0.2)
 
     ## plot exponential fit
@@ -138,13 +136,13 @@ for iname, name in enumerate(['DLS_wds', 'MC_wds']):
             dt, sim = np.array(res[unum]['dts'][i]), np.array(res[unum]['sims'][i])
             long_sims[iind, i, :] = binned_statistic(dt, sim, statistic = 'mean', bins = bins)[0]
     m, s = np.nanmean(long_sims, axis = (0, 1)), np.nanstd(long_sims, axis = (0, 1))/np.sqrt(np.sum(1-np.isnan(long_sims), axis = (0, 1)))
-    ax.plot(xs, m, get_col(name)+'--', alpha = 0.5)
+    ax.plot(xs, m, color = get_col(name), ls = '--', alpha = 0.5)
     ax.fill_between(xs, m-s, m+s, color = get_col(name), alpha = 0.1)
 
     # get lower bound
     m = np.mean(data[name]['long_shuffled_sims'])
     s = np.std(data[name]['long_shuffled_sims'])/np.sqrt(len(data[name]['long_shuffled_sims']))
-    ax.plot([xs[0], xs[-1]], np.ones(2)*m, get_col(name)+'--', alpha = 0.5)
+    ax.plot([xs[0], xs[-1]], np.ones(2)*m, color = get_col(name), ls = '--', alpha = 0.5)
     ax.fill_between([xs[0], xs[-1]], np.ones(2)*(m-s), np.ones(2)*(m+s), color = get_col(name), alpha = 0.1)
     print('lower bound:', m, s)
 
@@ -181,20 +179,20 @@ alphas = [1,1,1,1]
 for iname, name in enumerate(names):
     rat = pickle.load(open('../data/'+name+'_wds_data_warped.p', 'rb'))
     for iu, unum in enumerate(units[iname]):
-        #print(unum)
         iplot += 1
         
         u = rat['units'][unum]
         rasts = [u[day]['raster_w'] for day in np.sort(list(u.keys()))]
-        cols = [[0, 0.1+i/len(rasts)*0.8, 0.9-i/len(rasts)*0.8] for i in range(len(rasts))]
-        
+
+        cols = [np.array(get_col(name)) * (0.7*(1 - i/len(rasts))+0.4) for i in range(len(rasts))]
+
         n = 0
         ns_day = []
         ax = fig.add_subplot(gs[0, iplot])
         for irast, rasters in enumerate(rasts):
             if len(rasters) > 1:
                 for rast in rasters[::subsamps[iplot]]:
-                    if len(rast) > 1:
+                    if len(rast) > 2:
                         rast = np.array(rast)[::subsamps[iplot]]
                         ax.scatter(rast, [n for i in range(len(rast))], s=ss[iname], color=cols[irast], alpha = alphas[iname],  marker='o', linewidths=0.)
                         n -= 1
@@ -312,7 +310,7 @@ for ireg, region in enumerate(['DLS_wds', 'MC_wds']):
     boot_vals = data[region]['fit_boot_vals_dur']
     
     q1, q2, q3 = np.nanquantile(boot_vals, [0.25, 0.50, 0.75], axis = 0)
-    ax.plot(x, q2, get_col(region)+'--')
+    ax.plot(x, q2, color = get_col(region), ls = '--')
     ax.fill_between(x, q1, q3, color = get_col(region), alpha = 0.2)
     
     ax.scatter(x, y, marker='x', color = get_col(region), s = 30)
@@ -321,7 +319,6 @@ for ireg, region in enumerate(['DLS_wds', 'MC_wds']):
     print('\n'+region+' bootstrapped asymptotic quartiles:', np.nanquantile(1/boot[:,0], [0.25, 0.50, 0.75]))
     print(region+' boostrapped n = '+str(boot.shape[0]))
 
-    #print('max:', np.amax(x))
     
 ax.axhline(0, ls = '--', color = 'k')
 ax.set_xlabel('recording time', labelpad = -10)
@@ -343,13 +340,13 @@ all_sims_n_mc, all_sims_b_mc = res_mc['all_sims_n'], res_mc['all_sims_b']
 all_corrs_mc = np.array([pearsonr(all_sims_n_mc[i], all_sims_b_mc[i])[0] for i in range(len(all_sims_n_mc))])
 
 ax = fig.add_subplot(gs[1,0])
-h, _, _ = ax.hist(all_corrs, bins = np.linspace(-1, 1, 15), color = 'b', alpha = 0.5)
+h, _, _ = ax.hist(all_corrs, bins = np.linspace(-1, 1, 15), color = get_col('DLS'), alpha = 0.5)
 maxval = np.nanmax(h)*1.05
-ax.set_xlabel('correlation')
-ax.axvline(np.mean(all_corrs), color = 'b')
+ax.set_xlabel('correlation', labelpad = -2)
+ax.axvline(np.mean(all_corrs), color = get_col('DLS'))
 
-h, _, _ = ax.hist(all_corrs_mc, bins = np.linspace(-1, 1, 15), color = 'r', alpha = 0.5)
-ax.axvline(np.mean(all_corrs_mc), color = 'r')
+h, _, _ = ax.hist(all_corrs_mc, bins = np.linspace(-1, 1, 15), color = get_col('MC'), alpha = 0.5)
+ax.axvline(np.mean(all_corrs_mc), color = get_col('MC'))
 
 #ax.fill_between(np.quantile(boot, [0.025, 0.975]), 0, maxval, color = np.ones(3)*0.5, alpha = 0.5)
 print('mean corr', np.mean(all_corrs))
@@ -359,7 +356,7 @@ ax.set_yticks([0, 25])
 
 #%% plot neural vs behav analysis
 
-gs = fig.add_gridspec(1,2, left=l2-0.03, right=1.0, bottom=0.0, top=0.20, wspace = 0.1, hspace = 0.1)
+gs = fig.add_gridspec(1,2, left=l2-0.03, right=1.05, bottom=0.0, top=0.20, wspace = 0.1, hspace = 0.1)
 
 
 for ireg, region in enumerate(['DLS_wds', 'MC_wds']):
@@ -368,14 +365,19 @@ for ireg, region in enumerate(['DLS_wds', 'MC_wds']):
     
     minval, maxval = [func(np.concatenate([means, means_syn])) for func in [np.amin, np.amax]]
     bins = np.linspace(minval, maxval, 50)
+
+    col_un = [0,0,0]
+    col_stab = [0.5, 0.5, 0.5]
     
     ax = fig.add_subplot(gs[0, ireg])
-    ax.hist(means_syn, bins = bins, color = 'b', alpha = 0.5)
-    ax.hist(means, bins = bins, color = 'g', alpha = 0.5)
-        
-    ax.axvline(np.mean(all_corrs), color = 'k', lw = 2)
-    ax.axvline(np.mean(means), color = 'g', lw = 2, ls ='--')
-    ax.axvline(np.mean(means_syn), color = 'b', lw = 2, ls = '--')
+    ax.hist(means_syn, bins = bins, color = col_stab, alpha = 0.7)
+    ax.hist(means, bins = bins, color = col_un, alpha = 0.7)
+    
+    if ireg == 1:
+        ax.plot([], [], ls = '-', color = get_col('DLS'))
+    ax.axvline(np.mean(means), color = col_un, lw = 2, ls ='--')
+    ax.axvline(np.mean(means_syn), color = col_stab, lw = 2, ls = '--')
+    ax.axvline(np.mean(all_corrs), color = get_col(region), lw = 2)
     
     if ireg == 0:
         ax.set_xlabel('                   mean correlation')
@@ -383,9 +385,9 @@ for ireg, region in enumerate(['DLS_wds', 'MC_wds']):
         ax.set_ylabel('frequency')
         ax.set_xticks([-0.1, 0.15])
     else:
-        leg = ['data', 'ctrl', 'synth']
+        leg = ['DLS', 'ctrl', 'syn', 'MC']
         ax.legend(leg, frameon = False, ncol = len(leg), bbox_to_anchor = (-1.4, 1.40), loc = 'upper left',
-                   handlelength = 1.2, handletextpad = 0.5, columnspacing = 1.2)
+                   handlelength = 1.0, handletextpad = 0.3, columnspacing = 0.9)
         ax.set_xticks([-0.1, 0.2])
 
     ax.set_yticks([])

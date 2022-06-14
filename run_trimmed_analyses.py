@@ -10,6 +10,10 @@ import pickle
 from compute_neural_sim import compute_neural_sim, calc_alphas, binning, bootstrap_asymptotic, compute_shuffled_sims
 from utils import load_rat, fit_asymptotic_model, asymptotic_model, check_modulated
 from calc_stationary_sim import resample_rat
+from compute_behav_sim import compute_behav_sim
+from compute_neural_behav_sim import comp_neural_behav_sim
+from neural_behav_glm import gen_synthetic_rat, sample_data
+from scipy.stats import pearsonr
 import sys
 
 np.random.seed(17161309)
@@ -34,7 +38,7 @@ for name in names:
         
     data[name] = {}
     
-    rat = load_rat(name)
+    rat = load_rat(name, trim = True)
     
     unums, dts, sims, day1s = compute_neural_sim(rat) #compute similarity vs time difference
     
@@ -53,21 +57,6 @@ for name in names:
     
     print(name+':', len(alphas), -1/np.median(alphas), np.quantile(alphas, [0.25, 0.5, 0.75]))
 
-    ### repeat for resampled rats!!! ###
-    print('resampling')
-    data_re = {unum: {'dts': [], 'sims': []} for unum in rat['units'].keys()}
-    resample = 100
-    for i in range(resample):
-        print(i)
-        resampled_rat = resample_rat(rat)
-        ure, dre, sre, d1re = compute_neural_sim(resampled_rat)
-        mod_re, _ = check_modulated(ure, same_sims, name) #only consider significantly modulated
-        ure, dre, sre, d1re = [[arr[ind] for ind in mod_re] for arr in [ure, dre, sre, d1re]]
-        for iu, unum in enumerate(ure):
-            data_re[unum]['dts'].append(dre[iu])
-            data_re[unum]['sims'].append(sre[iu])
-    data[name]['resamples'] = data_re
-
     ### lower bound!
     long_inds = (rec_times >= 14).nonzero()[0]
     long_us = np.array(unums)[long_inds]
@@ -80,26 +69,7 @@ for name in names:
     ### also add whether this is projection or inter
     anal_types = {unum: rat['unittypes'][unum] for unum in unums}
     data[name]['types'] = anal_types
-    
-    if permute:
-        #### also compute shuffled alphas #####
-        nreps = 2000
-        shuffle_alphas = np.zeros(nreps)
-        for i in range(nreps):
-            if i % 100 == 0 and i > 0:
-                print(i, np.nanmean(shuffle_alphas[:i]), np.nanstd(shuffle_alphas[:i]), np.sum(np.isnan(newalphas)))
-            rand_inds = [np.random.choice(len(dt), len(dt), replace = False) for dt in dts]
-            newdts = [np.array(dt)[rand_inds[i]] for i, dt in enumerate(dts)]
-            #newsims = [np.array(sim)[rand_inds[i]] for i, sim in enumerate(sims)]
-            newalphas, newinds, _, _, _, _ = calc_alphas(unums, newdts, sims, comp_error=True)
 
-            #check which alphas are from significantly modulated units
-            shuffle_alphas[i] = np.nanmedian(newalphas) #store new data
-        if wds:
-            pickle.dump(shuffle_alphas, open('./results/'+name+'_shuffle_alphas_wds.p', 'wb'))
-        else:
-            pickle.dump(shuffle_alphas, open('./results/'+name+'_shuffle_alphas_twotap.p', 'wb'))
-        
     
     if name in ['MC', 'DLS', 'MC_wds', 'DLS_wds']:
         
@@ -119,17 +89,54 @@ for name in names:
         print('asymptotic tau:', 1/res[0])
         data[name]['bin_x_dur'], data[name]['bin_y_dur'], data[name]['bin_s_dur'] = x, y, s
         data[name]['fit_dur'], data[name]['bin_yhat_dur'] = res, yhat
-        
-        
-        boot = bootstrap_asymptotic(alpha_dts, alphas, N = 5000, prop = False)#True)
-        vals = []
-        for res in boot:
-            if not any(np.isnan(res)):
-                vals.append(asymptotic_model(res, x))
-        data[name]['fit_boot_dur'] = boot
-        data[name]['fit_boot_vals_dur'] = np.array(vals)
+
+
+        ### compare neural and behavioral data ###
+        print('\nneural behavioral correlation for', name)
+        dts_b, sims_b, day1s_b = compute_behav_sim(rat)
+        unums, dts_n, sims_n, day1s_n = compute_neural_sim(rat, synthetic = False, day0 = False)
+        mod_inds, _ = check_modulated(unums, same_sims, name) #only consider significantly modulated
+        print('modulated:', len(mod_inds), 'of', len(unums))
+        unums, dts_n, sims_n, day1s_n = [[arr[ind] for ind in mod_inds] for arr in [unums, dts_n, sims_n, day1s_n]]
+        all_sims_n, all_sims_b, all_corrs = comp_neural_behav_sim(unums, dts_n, sims_n, day1s_n, dts_b, sims_b, day1s_b)
+        pickle.dump({'all_sims_n': all_sims_n, 'all_sims_b': all_sims_b},
+                        open('./results/neural_behav_corr_trimmed_'+name+'.p', 'wb'))
+          
+        ### run permutation test ###
+        means = []
+        nreps_nb = 5000
+        for i in range(nreps_nb):
+            _, _, corrs = comp_neural_behav_sim(unums, dts_n, sims_n, day1s_n, dts_b, sims_b, day1s_b, permute = True)
+            means.append(np.mean(corrs))
+            if i % 100 == 0: print('permute', i, np.mean(means), np.std(means))
+        print('p =', np.mean(np.array(means) >= np.mean(all_corrs)))
+        ### compare with synthetic data ###
+        means_syn = []
+        ### save correlation analysis ###
+        pickle.dump({'means': means, 'means_syn': means_syn, 'all_corrs': all_corrs},
+                    open('./results/neural_behav_corr_syn_trimmed_'+name+'.p', 'wb'))
+
+    else:
+        ### behavior; not for aggregate data ###
+        dts_b, sims_b, day1s_b = compute_behav_sim(rat, verbose = False)
+        data[name]['dts_b'] = dts_b
+        data[name]['sims_b'] = sims_b
+        data[name]['day1s_b'] = day1s_b
+
+        ### bootstrap confidence interval ###
+        nreps = 10000
+        corrs = np.zeros(nreps)
+        dts_b, sims_b = np.array(dts_b), np.array(sims_b)
+        for nrep in range(nreps):
+            inds_b = np.random.choice(len(dts_b), len(dts_b), replace = True)
+            corrs[nrep] = pearsonr(dts_b[inds_b], sims_b[inds_b])[0]
+            
+        qs = [0.005, 0.025, 0.25, 0.5, 0.75, 0.975, 0.995]
+        print(name, qs, np.quantile(corrs, qs))
+        data[name]['corrs_b'] = corrs
         
 if wds:
-    pickle.dump(data, open('./results/neural_similarity_analyses_wds.p', 'wb'))
+    pickle.dump(data, open('./results/neural_similarity_analyses_trimmed_wds.p', 'wb'))
 else:
-    pickle.dump(data, open('./results/neural_similarity_analyses_twotap.p', 'wb'))
+    pickle.dump(data, open('./results/neural_similarity_analyses_trimmed_twotap.p', 'wb'))
+

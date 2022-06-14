@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 from scipy.stats import pearsonr, binned_statistic
-from plot_utils import get_col
+from plot_utils import get_col, col_blue, col_green
 from scipy.ndimage import gaussian_filter1d
 plt.rcParams['pdf.fonttype'] = 42
 font = {'family': 'sans-serif',
@@ -33,7 +33,6 @@ for igroup, group in enumerate(names):
     
     zs = [[], []] #twotap, wds
     for iname, name in enumerate(group):
-        print(name)
         
         ### twotap
         
@@ -44,7 +43,6 @@ for igroup, group in enumerate(names):
                 newrast = [d['peth_w_t'] for d in u.values()]
                 if len(newrast) > 0:
                     newrast = np.concatenate(newrast, axis = 0)
-                    #print(newrast.shape)
                     newrast = np.sum(newrast, axis = 0)
                     if np.sum(newrast) > 50: #more than 50 total spikes
                         zs[itask].append(np.amax( np.abs(newrast-np.mean(newrast))/np.std(newrast) ))
@@ -56,8 +54,8 @@ for igroup, group in enumerate(names):
     h1, h2 = [h/np.sum(h)/(bins[1] - bins[0]) for h in [h1, h2]]
     c1, c2 = [gaussian_filter1d(h, 0.15/(bins[1]-bins[0])) for h in [h1, h2]]
     zvals = 0.5*(bins[1:] + bins[:-1])
-    ax.plot(zvals, c1, 'g-')
-    ax.plot(zvals, c2, 'b-')
+    ax.plot(zvals, c1, color = 'k', ls = '-')
+    ax.plot(zvals, c2, color = col_blue, ls = '-')
     ax.set_xlabel('modulation (z score)', labelpad = -10)
     ax.set_ylabel('frequency (a.u.)')
     ax.set_yticks([])

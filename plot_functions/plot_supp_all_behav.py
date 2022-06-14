@@ -15,7 +15,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 12}
 plt.rc('font', **font)
-from plot_utils import panel_font, png_dpi
+from plot_utils import panel_font, png_dpi, global_cmap
 plt.rcParams['font.sans-serif'] = ['arial']
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['axes.spines.top'] = False
@@ -57,7 +57,7 @@ for iz, zscore in enumerate([False, True]):
                 interpolation = 'none'
 
             ax = fig.add_subplot(gs[ilab, iname])
-            im = ax.imshow(plottrajec, cmap='coolwarm', aspect='auto', vmin=vmin, vmax = vmax, interpolation = interpolation)
+            im = ax.imshow(plottrajec, cmap=global_cmap, aspect='auto', vmin=vmin, vmax = vmax, interpolation = interpolation)
 
             ax.set_yticks([0, len(plottrajec)])
             ax.set_yticklabels([1, newdays[-1]-newdays[0]+1], fontsize = 10)

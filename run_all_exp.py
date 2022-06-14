@@ -21,8 +21,9 @@ print('\n\nrunning neural analyses for WDS task')
 sb.call(['python', 'run_neural_analyses.py', '1'])
 
 ### run latent space and decoding analyses ###
-print('\n\nrunning latent stability')
-sb.call(['python', 'latent_stability.py', '1'])
+print('\n\nrunning latent stability and decoding models')
+sb.call(['python', 'latent_stability.py'])
+sb.call(['python', 'fit_encoding_model.py'])
 
 ### run behav analyses for twotap ###
 print('\n\nrunning behavioral analyses for twotap task')
@@ -31,6 +32,11 @@ sb.call(['python', 'run_behav_analyses.py', '0'])
 ### run behav analyses for WDS ###
 print('\n\nrunning behavioral analyses for WDS task')
 sb.call(['python', 'run_behav_analyses.py', '1'])
+
+### run trimming analyses ###
+print('\n\nrunning analyses with trimming')
+sb.call(['python', 'run_trimmed_analyses.py', '0'])
+sb.call(['python', 'run_trimmed_analyses.py', '1'])
 
 ### run IPI analyses (~1 min)###
 print('\n\nrunning IPI analyses')

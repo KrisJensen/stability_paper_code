@@ -42,96 +42,33 @@ def get_peths(u, days, synthetic = False):
         hs = [u[day]['peth_w'] for day in days]
     return hs
 
-def get_rates(u, days, synthetic = False):
-    if synthetic: #use GLM generated data
-        raise NotImplementedError
-    else: #use experimental data
-        rs = [np.sum(np.mean(u[day]['peth_w_t'], axis = 0)) for day in days] #rate in spikes per trial
-        counts = [np.sum(u[day]['peth_w_t']) for day in days]
-        trials = [u[day]['peth_w_t'].shape[0] for day in days]
-    return rs, counts, trials
-
-def calc_pois_sim(c1, c2, t1, t2):
-    r1, r2 = c1/t1, c2/t2
-    imin, imax = np.argmin([r1, r2]), np.argmax([r1, r2]) #min and max rates
-    
-    rate = (c1+c2)/(t1+t2) #optimal rate is total rate, measured per trial
-    
-    ### consider cdf up to lambda1
-    cdf1 = poisson.cdf([c1, c2][imin]+0.1, [t1, t2][imin]*rate, loc=0)
-    cdf2 = 1-poisson.cdf([c1, c2][imax], [t1, t2][imax]*rate, loc=0)
-    return cdf1+cdf2
-
-def calc_pois_sim(c1, c2, t1, t2):
-    cs, ts = np.array([c1, c2]), np.array([t1, t2])
-    rs = cs/ts
-    args = np.argsort(ts)
-    cs, ts, rs = cs[args], ts[args], rs[args]
-    rate = sum(cs)/sum(ts)
-    delta = np.abs(rs[1] - rs[0]) #rate difference
-    
-    ### let c1 \in [0.5*lambda, 1.5*lambda]
-    cmin, cmax = int(np.floor(0.5*rate*ts[0]-4)), int(np.ceil(1.5*rate*ts[0]+4))
-    tile_cs = np.arange(cmin, cmax)
-    
-    if cs[1] > 100:
-        tile_cs = tile_cs[::5]
-    if cs[1] > 300:
-        tile_cs = tile_cs[::15]
-    elif cs[1] > 1000:
-        tile_cs = tile_cs[::50]
-    
-    ps = np.zeros(len(tile_cs))
-    cdfs = np.zeros(len(tile_cs))
-    for i, c in enumerate(tile_cs):
-        ps[i] = poisson.pmf(c, rate*ts[0]) #p(c1)
-        
-        cmin = ts[1]*(c/ts[0] - delta)
-        cmax = ts[1]*(c/ts[0] + delta)
-
-        cdfs[i] = poisson.cdf(cmin, rate*ts[1]+1e-5) #c2 smaller than or equal to t2*(c1/t1-delta)
-        cdfs[i] += (1 - poisson.cdf(cmax, rate*ts[1]+1e-5)) #c2 larger than or equal to t2*(c1/t1-delta)
-        
-        #print(rate*ts[1], c, cmin, cmax, ps[i], cdfs[i], (1 - poisson.cdf(cmax, rate*ts[1]+1e-5)))
-        
-    ps /= np.sum(ps) #normalize
-    return np.sum(ps*cdfs)
-
-def compute_neural_sim(rat, synthetic = False, day0 = True, rate = False):
-    
+def compute_neural_sim(rat, synthetic = False, day0 = True):
+    '''compute PETH similarity and time differences'''
     unums = []
     day1s = []
     dts = []
     sims = []
     
-    for unum, u in rat['units'].items():
+    for unum, u in rat['units'].items(): #for each unit
         newdt, newsim, newday1 = [], [], []
         days = np.sort(list(u.keys()))
-        #print(unum)
         if not day0:
             days = days[1:]
         
-        for i1, day1 in enumerate(days):
-            for day2 in days[i1+1:]:
+        for i1, day1 in enumerate(days): #for each day1
+            for day2 in days[i1+1:]: #for each day2
                 
-                if rate:
-                    [r1, r2], [c1, c2], [t1, t2] = get_rates(u, [day1, day2], synthetic)
-                    count = True
-                    if max(r1, r2) > 0:
-                        sim = 1 - 1*np.abs(r1-r2)/(r1+r2)
-                    else: #two silent sessions are similar
-                        sim = 1
-                    ### joint probability under the optimal poisson model ###
-                    sim = calc_pois_sim(c1, c2, t1, t2)
-                    #if min(c1, c2) < global_params['minspike']: count = False
-                        
-                else:
-                    h1, h2 = get_peths(u, [day1, day2], synthetic)
-                    count = True if (min(sum(h1), sum(h2)) >= global_params['minspike']) else False
-                    if count: sim = pearsonr(h1, h2)[0]
+                h1, h2 = get_peths(u, [day1, day2], synthetic) #extract PETHs
+
+                #whether we should include this datapoint or not based on our threshold on the number of spikes per session
+                count = True if (min(sum(h1), sum(h2)) >= global_params['minspike']) else False
+                if count:
+                    sim = pearsonr(h1, h2)[0]
                     
                 if count:
                     newsim.append(sim)
+                    #here the 'time difference' is simply the number of days between the two sessions
+                    #if we separated out multiple sessions per day, we would want to use some measure of wallclock time here
                     newdt.append(day2-day1)
                     newday1.append(day1)
                         
@@ -230,29 +167,3 @@ def binning(xs, ys, bins = 8, bins1 = None, stat = 'median'):
     
     return x, y, s
 
-def rolling_median(xs, ys, wsize = None, delta = 1, xmax = None):
-    if wsize is None:
-        wsize = (np.amax(xs) - np.amin(xs))/10
-    if xmax is None:
-        xmax = np.amax(xs)
-    
-    xs, ys = np.array(xs), np.array(ys)
-    
-    x0s = np.arange(np.amin(xs), xmax-wsize, delta)
-    x1s = x0s+wsize
-    x0s = np.concatenate([x0s, np.ones(1)*(xmax-wsize)])
-    x1s = np.concatenate([x1s, np.ones(1)*(np.amax(xs))])
-    
-    # print(np.amin(x0s), np.amax(x1s), np.amin(xs), np.amax(xs))
-    
-    data_bins = [ys[(xs >= x0s[i]) & (xs <= x1s[i])] for i in range(len(x0s))]
-    data_xs = [xs[(xs >= x0s[i]) & (xs <= x1s[i])] for i in range(len(x0s))]
-    
-    y = [np.nanmedian(data) for data in data_bins]
-    s = [np.nanstd(data) for data in data_bins]
-    x = 0.5*(x0s+x1s)
-    x = [np.nanmedian(xvals) for xvals in data_xs]
-    x = [np.nanmean(xvals) for xvals in data_xs]
-    
-    return np.array(x), np.array(y), np.array(s)
-    

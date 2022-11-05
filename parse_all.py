@@ -5,7 +5,6 @@ import sys
 names = ['Hindol', 'Dhanashri', 'Jaunpuri', 'Hamir', 'Gorakh', 'Gandhar']        
 
 pystr = 'python'
-pystr = '/scratches/enigma/ktj21/anaconda3/bin/python'
 
 trim = False
 if len(sys.argv) > 1:

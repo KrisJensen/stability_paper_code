@@ -3,7 +3,6 @@ import os
 
 print('\nplotting all figures and printing results')
 pystr = 'python'
-pystr = '/scratches/enigma/ktj21/anaconda3/bin/python'
 
 ### make directories ###
 print('\n\ncreating directories for results and figures')

@@ -2,7 +2,6 @@ import subprocess as sb
 import os
 
 pystr = 'python'
-pystr = '/scratches/enigma/ktj21/anaconda3/bin/python'
 
 ### create directories ###
 print('\n\ncreating directories for results')

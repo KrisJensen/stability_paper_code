@@ -4,7 +4,6 @@ import time
 
 t0 = time.time() #total runtime ~24 hours
 pystr = 'python'
-pystr = '/scratches/enigma/ktj21/anaconda3/bin/python'
 
 ### parse data for all animals ###
 print('\n\nparsing data')

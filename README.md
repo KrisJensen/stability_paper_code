@@ -20,7 +20,7 @@ Note that all data have previously been used by Dhawale et al. (2017, 2021); see
 `from utils import load_rat`\
 `rat = load_rat('ratname')`
 
-The dataset consists of 6 rats: `Hindol`, `Dhanashri`, and `Jaunpuri` (DLS), and `Hamir`, `Gorakh` and `Gandhar` (MC).\
+The dataset consists of 6 rats: `Hindol`, `Dhanashri`, and `Jaunpuri` (DLS), and `Hamir`, `Gorakh` and `Gandhar` (MC).
 
 `load_rat('ratname')` returns a dictionary with the following contents:
 

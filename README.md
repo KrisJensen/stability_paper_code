@@ -1,10 +1,10 @@
-## Long-term stability of neural activity in the motor system
+## Long-term stability of single neuron activity in the motor system
 
-Code for reproducing analyses in Jensen et al. (2022).
+Code for reproducing analyses in Jensen et al.: Long-term stability of single neuron activity in the motor system (2022).
 
 ### Reproducing results
 
-To download partially processed data and reproduce all analyses and figures:
+To download the data used in the paper and reproduce all analyses and figures:
 
 `conda create -n stability --file requirements.txt`\
 `conda activate stability`\
